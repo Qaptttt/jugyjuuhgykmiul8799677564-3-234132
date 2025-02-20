@@ -94,24 +94,25 @@ async def upload(ctx, key_type: str, *keys_to_upload):
 
 # Generate command (Client only)
 @bot.command()
-async def gen(ctx, key_type: str):
+async def gen(ctx, key_type: str, amount: int):
     if not has_role(ctx, CLIENT_ROLE_ID):
         await ctx.send("❌ You do not have permission to generate keys.")
         return
 
     key_type = key_type.lower()
-    if key_type not in keys or not keys[key_type]:
-        await ctx.send(f"❌ No `{key_type}` keys available in stock.")
+    if key_type not in keys or len(keys[key_type]) < amount:
+        await ctx.send(f"❌ Not enough `{key_type}` keys available in stock.")
         return
 
-    generated_key = keys[key_type].pop(0)
+    generated_keys = [keys[key_type].pop(0) for _ in range(amount)]
     save_keys(keys)
 
     try:
-        await ctx.author.send(f"🔑 Your `{key_type}` key: `{generated_key}`")
-        await ctx.send(f"✅ A `{key_type}` key has been sent to your DMs.")
+        await ctx.author.send(f"🔑 Your `{key_type}` keys: {', '.join(generated_keys)}")
+        await ctx.send(f"✅ `{amount}` `{key_type}` key(s) have been sent to your DMs.")
     except discord.Forbidden:
-        keys[key_type].insert(0, generated_key)  # Put the key back if DM fails
+        for key in generated_keys:
+            keys[key_type].insert(0, key)  # Put the keys back if DM fails
         save_keys(keys)
         await ctx.send("⚠️ I couldn't DM you! Please enable DMs and try again.")
 
@@ -134,19 +135,23 @@ async def view_stock(ctx):
 
 # HWID request command (Client only)
 @bot.command()
-async def hwid(ctx, key: str):
+async def hwid(ctx, keys_input: str):
     if not has_role(ctx, CLIENT_ROLE_ID):
         await ctx.send("❌ You do not have permission to request HWID binding.")
         return
 
-    if key not in [k for key_list in keys.values() for k in key_list]:
-        await ctx.send("❌ Invalid key. Please check the key and try again.")
+    keys_list = [key.strip() for key in keys_input.split(",")]
+    invalid_keys = [key for key in keys_list if key not in [k for key_list in keys.values() for k in key_list]]
+
+    if invalid_keys:
+        await ctx.send(f"❌ Invalid keys: {', '.join(invalid_keys)}. Please check the keys and try again.")
         return
 
     admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
     if admin_channel:
-        await admin_channel.send(f"⚙️ HWID bind request for key `{key}` from `{ctx.author.name}`")
-        await ctx.send(f"✅ Your HWID bind request has been sent to the admin.")
+        for key in keys_list:
+            await admin_channel.send(f"⚙️ HWID bind request for key `{key}` from `{ctx.author.name}`")
+        await ctx.send(f"✅ Your HWID bind request for keys `{', '.join(keys_list)}` has been sent to the admin.")
     else:
         await ctx.send("⚠️ Could not find the admin channel.")
 
@@ -165,12 +170,12 @@ async def help(ctx):
     help_message = """**🤖 Available Commands:**
 🔹 `!upload <day|week|month|lifetime> <key1> <key2> ...` *(Admin Only)*
  ➥ Uploads keys to the stock.
-🔹 `!gen <day|week|month|lifetime>` *(Client Only)*
- ➥ Generates and sends a key from stock via DM.
+🔹 `!gen <day|week|month|lifetime> <amount>` *(Client Only)*
+ ➥ Generates and sends multiple keys from stock via DM.
 🔹 `!view_stock` *(Client Only)*
  ➥ Views available key stock. Sent via DM.
-🔹 `!hwid <key>` *(Client Only)*
- ➥ Requests HWID binding for a specific key.
+🔹 `!hwid <key1, key2, ...>` *(Client Only)*
+ ➥ Requests HWID binding for specific keys.
 🔹 `!shutdown` *(Admin Only)*
  ➥ Shuts down the bot.
 """
