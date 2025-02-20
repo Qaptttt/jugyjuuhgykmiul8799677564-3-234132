@@ -1,0 +1,19 @@
+day
+B06-Chair-A3H12XSJ55
+B06-Chair-HQ9F7QQPS2
+B06-Chair-MFLCFGVBCR
+B06-Chair-XFCYC2EUS4
+B06-Chair-MZGFC4D37S
+[... rest of day keys ...]
+week
+B06-Chair-72D73CQ4RE
+B06-Chair-DDZSTWHMDV
+[... rest of week keys ...]
+month
+B06-Chair-MGUZKXDH13
+B06-Chair-RTGNQ46KDL
+[... rest of month keys ...]
+lifetime
+B06-Chair-X1TN5SAJSS
+B06-Chair-FY42ZBYW6Y
+[... rest of lifetime keys ...]
