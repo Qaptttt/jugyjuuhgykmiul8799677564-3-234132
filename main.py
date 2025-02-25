@@ -25,7 +25,7 @@ CLIENT_CHANNEL_ID = int(os.getenv('CLIENT_CHANNEL_ID'))
 
 # Load stock from file with error handling
 def load_keys():
-    keys = {"day": [], "week": [], "month": [], "lifetime": []}
+    keys = {"day": [], "week": [], "month": [], "lifetime": [], "4hour": []}
     try:
         if os.path.exists("stock.txt"):
             with open("stock.txt", "r") as f:
@@ -85,7 +85,7 @@ async def upload(ctx, key_type: str, *keys_to_upload):
 
     key_type = key_type.lower()
     if key_type not in keys:
-        await ctx.send("❌ Invalid key type. Valid types: `day`, `week`, `month`, `lifetime`.")
+        await ctx.send("❌ Invalid key type. Valid types: `day`, `week`, `month`, `lifetime`, `4hour`.")
         return
 
     keys[key_type].extend(keys_to_upload)
@@ -116,6 +116,42 @@ async def gen(ctx, key_type: str, amount: int):
         save_keys(keys)
         await ctx.send("⚠️ I couldn't DM you! Please enable DMs and try again.")
 
+# HWID request command (Client only)
+@bot.command()
+async def hwid(ctx, key: str):
+    if not has_role(ctx, CLIENT_ROLE_ID):
+        await ctx.send("❌ You do not have permission to use this command.")
+        return
+
+    admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
+    if admin_channel:
+        await admin_channel.send(f"🔓 HWID reset requested for key `{key}` by `{ctx.author.name}`")
+    await ctx.send("✅ HWID has been reset.")
+
+# Freeze key command (Client only)
+@bot.command()
+async def freeze(ctx, key: str):
+    if not has_role(ctx, CLIENT_ROLE_ID):
+        await ctx.send("❌ You do not have permission to use this command.")
+        return
+
+    admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
+    if admin_channel:
+        await admin_channel.send(f"❄️ Key `{key}` has been frozen by `{ctx.author.name}`")
+    await ctx.send("✅ Key has been frozen.")
+
+# Ban key command (Client only)
+@bot.command()
+async def ban(ctx, key: str):
+    if not has_role(ctx, CLIENT_ROLE_ID):
+        await ctx.send("❌ You do not have permission to use this command.")
+        return
+
+    admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
+    if admin_channel:
+        await admin_channel.send(f"⛔ Key `{key}` has been banned by `{ctx.author.name}`")
+    await ctx.send("✅ Key has been banned.")
+
 # View stock command (Client only)
 @bot.command()
 async def view_stock(ctx):
@@ -133,28 +169,6 @@ async def view_stock(ctx):
     except discord.Forbidden:
         await ctx.send("⚠️ I couldn't DM you! Please enable DMs and try again.")
 
-# HWID request command (Client only)
-@bot.command()
-async def hwid(ctx, keys_input: str):
-    if not has_role(ctx, CLIENT_ROLE_ID):
-        await ctx.send("❌ You do not have permission to request HWID binding.")
-        return
-
-    keys_list = [key.strip() for key in keys_input.split(",")]
-    invalid_keys = [key for key in keys_list if key not in [k for key_list in keys.values() for k in key_list]]
-
-    if invalid_keys:
-        await ctx.send(f"❌ Invalid keys: {', '.join(invalid_keys)}. Please check the keys and try again.")
-        return
-
-    admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
-    if admin_channel:
-        for key in keys_list:
-            await admin_channel.send(f"⚙️ HWID bind request for key `{key}` from `{ctx.author.name}`")
-        await ctx.send(f"✅ Your HWID bind request for keys `{', '.join(keys_list)}` has been sent to the admin.")
-    else:
-        await ctx.send("⚠️ Could not find the admin channel.")
-
 # Shutdown command (Admin only)
 @bot.command()
 async def shutdown(ctx):
@@ -168,14 +182,18 @@ async def shutdown(ctx):
 @bot.command()
 async def help(ctx):
     help_message = """**🤖 Available Commands:**
-🔹 `!upload <day|week|month|lifetime> <key1> <key2> ...` *(Admin Only)*
+🔹 `!upload <day|week|month|lifetime|4hour> <key1> <key2> ...` *(Admin Only)*
  ➥ Uploads keys to the stock.
-🔹 `!gen <day|week|month|lifetime> <amount>` *(Client Only)*
- ➥ Generates and sends multiple keys from stock via DM.
+🔹 `!gen <day|week|month|lifetime|4hour> <amount>` *(Client Only)*
+ ➥ Generates and sends multiple keys via DM.
 🔹 `!view_stock` *(Client Only)*
- ➥ Views available key stock. Sent via DM.
-🔹 `!hwid <key1, key2, ...>` *(Client Only)*
- ➥ Requests HWID binding for specific keys.
+ ➥ Views available key stock.
+🔹 `!hwid <key>` *(Client Only)*
+ ➥ Requests HWID reset.
+🔹 `!freeze <key>` *(Client Only)*
+ ➥ Freezes a key.
+🔹 `!ban <key>` *(Client Only)*
+ ➥ Bans a key.
 🔹 `!shutdown` *(Admin Only)*
  ➥ Shuts down the bot.
 """
